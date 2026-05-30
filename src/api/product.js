@@ -9,15 +9,21 @@ const MYNTRA_PROXY   = "/.netlify/functions/myntra-image";
  * Returns: { style_id, style_code, style_name, color, mrp } or null
  */
 export async function fetchProductByStyleCode(styleCode) {
-  if (!styleCode) return null;
+  if (!styleCode) {
+    console.warn("fetchProductByStyleCode: styleCode is null/undefined");
+    return null;
+  }
   try {
+    console.log("🔍 Fetching product for style_code:", styleCode);
     const { data } = await axios.get(PRODUCT_API, {
       params: { style_code: styleCode },
       timeout: 8_000,
     });
+    console.log("📋 Inventory API response:", data);
     const list = Array.isArray(data) ? data : [];
     return list.length > 0 ? list[0] : null;
-  } catch {
+  } catch (err) {
+    console.error("fetchProductByStyleCode error:", err.message);
     return null;
   }
 }

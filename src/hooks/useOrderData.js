@@ -56,22 +56,32 @@ export function useOrderData(orderId) {
         return;
       }
 
-      // Step 2: resolve team immediately (fast — no extra API call)
+      // Step 2: resolve team immediately — page renders NOW
       setTeam(resolveTeam(locationMap));
-      setStatus("success"); // ← page renders NOW, product loads after
+      setStatus("success");
 
-      // Step 3: fetch product info in background (non-blocking)
-      const product = await fetchProductByStyleCode(meta?.style_number);
-      if (!product) { setProductInfo(null); return; }
+      // Step 3: product + image in background — completely isolated, never breaks page
+      (async () => {
+        try {
+          const styleNumber = meta?.style_number;
+          if (!styleNumber) return;
 
-      // Show product name immediately, image comes next
-      setProductInfo({ ...product, imageUrl: null });
-      setImageLoading(true);
+          const product = await fetchProductByStyleCode(styleNumber);
+          if (!product) return;
 
-      // Fetch Myntra image — page already visible, image just pops in
-      const imageUrl = await fetchMyntraImage(product.style_id);
-      setImageLoading(false);
-      setProductInfo({ ...product, imageUrl });
+          // Show product name immediately
+          setProductInfo({ ...product, imageUrl: null });
+          setImageLoading(true);
+
+          // Fetch image — if this fails, product name still shows
+          const imageUrl = await fetchMyntraImage(product.style_id);
+          setImageLoading(false);
+          setProductInfo({ ...product, imageUrl: imageUrl ?? null });
+        } catch {
+          setImageLoading(false);
+          // Silently fail — team is already visible
+        }
+      })();
 
     } catch (err) {
       const message =
