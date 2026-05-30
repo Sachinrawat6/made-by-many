@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchOrderById } from "@/api/nocodb";
-import { fetchProductByStyleCode, fetchMyntraImage } from "@/api/product";
+import { fetchProductByStyleCode } from "@/api/product";
 import { STATIC_MEMBERS, TEAM_ROLES } from "@/constants/team";
 
 export function useOrderData(orderId) {
-  const [status,        setStatus]        = useState(orderId ? "loading" : "idle");
-  const [team,          setTeam]          = useState([]);
-  const [productInfo,   setProductInfo]   = useState(null);
-  const [imageLoading,  setImageLoading]  = useState(false);
-  const [error,         setError]         = useState(null);
+  const [status,      setStatus]      = useState(orderId ? "loading" : "idle");
+  const [team,        setTeam]        = useState([]);
+  const [productInfo, setProductInfo] = useState(null);
+  const [error,       setError]       = useState(null);
 
   const resolveTeam = useCallback((locationMap) => {
     const staticPart = STATIC_MEMBERS.map((m) => ({ ...m }));
@@ -42,13 +41,8 @@ export function useOrderData(orderId) {
     setError(null);
 
     try {
-      // Step 1: NocoDB + product API in parallel
-      const [{ locationMap, orderMeta: meta, rawRecords }, _] = await Promise.all([
-        fetchOrderById(orderId),
-        Promise.resolve(), // placeholder for future parallel calls
-      ]);
+      const { locationMap, orderMeta: meta, rawRecords } = await fetchOrderById(orderId);
 
-      // No scans found → default team, no product
       if (rawRecords.length === 0) {
         setTeam(resolveTeam({}));
         setProductInfo(null);
@@ -56,44 +50,29 @@ export function useOrderData(orderId) {
         return;
       }
 
-      // Step 2: resolve team immediately — page renders NOW
+      // Render team immediately
       setTeam(resolveTeam(locationMap));
       setStatus("success");
 
-      // Step 3: product + image in background — completely isolated, never breaks page
+      // Fetch product title in background (non-blocking)
       (async () => {
         try {
           const styleNumber = meta?.style_number;
           if (!styleNumber) return;
-
           const product = await fetchProductByStyleCode(styleNumber);
-          if (!product) return;
-
-          // Show product name immediately
-          setProductInfo({ ...product, imageUrl: null });
-          setImageLoading(true);
-
-          // Fetch image — if this fails, product name still shows
-          const imageUrl = await fetchMyntraImage(product.style_id);
-          setImageLoading(false);
-          setProductInfo({ ...product, imageUrl: imageUrl ?? null });
+          if (product) setProductInfo(product);
         } catch {
-          setImageLoading(false);
-          // Silently fail — team is already visible
+          // Silently fail — team already visible
         }
       })();
 
     } catch (err) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Something went wrong. Please try again.";
-      setError(message);
+      setError(err?.response?.data?.message || err?.message || "Something went wrong.");
       setStatus("error");
     }
   }, [orderId, resolveTeam]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  return { status, team, productInfo, imageLoading, error, refetch: fetchData };
+  return { status, team, productInfo, error, refetch: fetchData };
 }

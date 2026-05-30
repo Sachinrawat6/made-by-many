@@ -1,50 +1,44 @@
+// Static placeholder image — replace with real image later
+const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&q=80";
+
 /**
  * OrderHero
- * productInfo: { style_id, style_name, imageUrl? } | null
+ * productInfo: { style_name, ... } | null
  * orderId: string | null
- *
- * Image loads in background after team is already visible.
- * Shows skeleton → image (or nothing if fetch fails).
  */
-export function OrderHero({ productInfo, imageLoading, orderId }) {
+export function OrderHero({ productInfo, orderId }) {
   const hasProduct = !!productInfo;
-  const displayId = orderId ? `#${orderId}` : null;
-  const imageUrl = productInfo?.imageUrl ?? null;
-
-  console.log('OrderHero render:', { productInfo, imageLoading, orderId, imageUrl });
+  const displayId  = orderId ? `#${orderId}` : null;
 
   return (
     <div className="text-center px-4 pt-8 pb-6 animate-fade-in">
       {/* Heading */}
-      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">Made by Many</h1>
+      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">
+        Made by Many
+      </h1>
 
       {hasProduct && (
         <>
           {/* Order ID */}
           {displayId && (
-            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">{displayId}</p>
+            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">
+              {displayId}
+            </p>
           )}
+
+          {/* Static placeholder image */}
+          <div className="relative mx-auto w-48 rounded-2xl overflow-hidden shadow-md border border-gray-100 mb-4">
+            <img
+              src={PLACEHOLDER_IMAGE}
+              alt={productInfo.style_name}
+              className="w-full h-auto object-cover"
+            />
+          </div>
 
           {/* Product name */}
-          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto mb-4">
+          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto">
             {productInfo.style_name}
           </p>
-
-          {/* Product image */}
-          {imageLoading && (
-            <div className="mx-auto w-48 h-64 rounded-2xl bg-gray-100 animate-pulse mb-4" />
-          )}
-
-          {imageUrl && (
-            <div className="relative mx-auto w-48 rounded-2xl overflow-hidden shadow-md border border-gray-100 mb-4 animate-fade-in">
-              <img
-                src={imageUrl}
-                alt={productInfo.style_name}
-                className="w-full h-auto object-cover"
-                loading="lazy"
-              />
-            </div>
-          )}
         </>
       )}
 
