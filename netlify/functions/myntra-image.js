@@ -12,7 +12,7 @@ exports.handler = async (event) => {
       `https://www.myntra.com/gateway/v2/product/${styleId}`,
       {
         timeout: 10000,
-        decompress: true, // axios handles gzip automatically
+        decompress: true,
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 " +
@@ -28,13 +28,21 @@ exports.handler = async (event) => {
     );
 
     const albums = data?.style?.media?.albums ?? [];
+    console.log("Albums count:", albums.length);
+    console.log("Album names:", albums.map(a => a.name));
+
     let imageUrl = null;
 
+    // Try all albums (not just "default")
     for (const album of albums) {
-      if (album.name !== "default") continue;
-      for (const img of album?.images ?? []) {
-        const url = img?.imageURL || img?.secureSrc;
-        if (url && url.includes("myntassets")) {
+      const images = album?.images ?? [];
+      console.log(`Album "${album.name}" images count:`, images.length);
+
+      for (const img of images) {
+        console.log("Image fields:", Object.keys(img));
+        // imageURL = plain CDN URL without template vars
+        const url = img?.imageURL || img?.secureSrc || img?.src;
+        if (url && url.length > 10) {
           imageUrl = url.replace("http://", "https://");
           break;
         }
@@ -42,7 +50,9 @@ exports.handler = async (event) => {
       if (imageUrl) break;
     }
 
+    console.log("Final imageUrl:", imageUrl);
     return respond(200, { imageUrl });
+
   } catch (err) {
     console.error("myntra-image error:", err.message);
     return respond(200, { imageUrl: null, debug: err.message });
