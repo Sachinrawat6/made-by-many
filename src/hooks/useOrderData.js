@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchOrderById } from "@/api/nocodb";
+import { fetchProductByStyleCode } from "@/api/product";
 import { STATIC_MEMBERS, TEAM_ROLES } from "@/constants/team";
 
 /**
@@ -15,10 +16,11 @@ import { STATIC_MEMBERS, TEAM_ROLES } from "@/constants/team";
  * @returns {{ status, team, orderMeta, error, refetch }}
  */
 export function useOrderData(orderId) {
-  const [status,    setStatus]    = useState(orderId ? "loading" : "idle");
-  const [team,      setTeam]      = useState([]);
-  const [orderMeta, setOrderMeta] = useState(null);
-  const [error,     setError]     = useState(null);
+  const [status,      setStatus]      = useState(orderId ? "loading" : "idle");
+  const [team,        setTeam]        = useState([]);
+  const [orderMeta,   setOrderMeta]   = useState(null);
+  const [productInfo, setProductInfo] = useState(null);
+  const [error,       setError]       = useState(null);
 
   const resolveTeam = useCallback((locationMap) => {
     // Static members always first
@@ -68,11 +70,15 @@ export function useOrderData(orderId) {
       // No records found — show default team, hide product info
       if (rawRecords.length === 0) {
         setOrderMeta(null);
+        setProductInfo(null);
         setTeam(resolveTeam({}));
         setStatus("success");
         return;
       }
 
+      // Fetch product info in parallel using style_number from orders_2
+      const product = await fetchProductByStyleCode(meta?.style_number);
+      setProductInfo(product);
       setOrderMeta(meta);
       setTeam(resolveTeam(locationMap));
       setStatus("success");
@@ -90,5 +96,5 @@ export function useOrderData(orderId) {
     fetchData();
   }, [fetchData]);
 
-  return { status, team, orderMeta, error, refetch: fetchData };
+  return { status, team, orderMeta, productInfo, error, refetch: fetchData };
 }

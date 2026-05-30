@@ -11,7 +11,7 @@ import { OrderHero }       from "@/components/order/OrderHero";
  */
 export default function MadeByManyPage() {
   const { orderId } = useUrlParams();
-  const { status, team, orderMeta, error, refetch } = useOrderData(orderId);
+  const { status, team, orderMeta, productInfo, error, refetch } = useOrderData(orderId);
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -20,8 +20,8 @@ export default function MadeByManyPage() {
       {/* Page body */}
       <main className="max-w-lg mx-auto pb-16">
 
-        {/* Hero: product image + order info */}
-        <OrderHero orderMeta={orderMeta} orderId={orderId} />
+        {/* Hero: product + order info */}
+        <OrderHero orderMeta={orderMeta} productInfo={productInfo} orderId={orderId} />
 
         {/* Team timeline */}
         <div className="px-4">

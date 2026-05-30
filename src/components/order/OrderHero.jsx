@@ -1,52 +1,80 @@
-const DUMMY_IMAGE =
-  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80";
-const DUMMY_NAME = "Georgette Printed V Neck Dress";
-const DUMMY_DESC =
-  "White Georgette Fit & Flare Dress with Straight Hemline and With Lining";
+import { useState } from 'react';
 
 /**
  * OrderHero
- * orderMeta: { order_id, style_number } — null when order not found
+ *
+ * productInfo: { style_id, style_code, style_name, color, mrp } | null
+ * orderMeta:   { order_id, style_number } | null
+ * orderId:     string | null
+ *
+ * Shows product section only when productInfo is available.
+ * Embeds Myntra product page in an iframe using style_id.
  */
-export function OrderHero({ orderMeta, orderId }) {
-  const hasData = !!orderMeta;
-  const productName = orderMeta?.style_number
-    ? `Style #${orderMeta.style_number}`
-    : DUMMY_NAME;
+export function OrderHero({ productInfo, orderMeta, orderId }) {
+  const [iframeBlocked, setIframeBlocked] = useState(false);
+
+  // Only show product block when API returned data
+  const hasProduct = !!productInfo;
+  const myntraUrl = productInfo?.style_id ? `https://www.myntra.com/${productInfo.style_id}` : null;
+
   const displayOrderId = orderId ? `#${orderId}` : null;
 
   return (
     <div className="text-center px-4 pt-8 pb-6 animate-fade-in">
       {/* Heading */}
-      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">
-        Made by Many
-      </h1>
+      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">Made by Many</h1>
 
-      {/* Product image + info — only when API returned data */}
-      {hasData && (
+      {/* Product block — only when productInfo exists */}
+      {hasProduct && (
         <>
-          <div className="relative mx-auto w-44 h-52 sm:w-52 sm:h-60 rounded-2xl overflow-hidden shadow-lg border-4 border-white ring-2 ring-gray-100 mb-4">
-            <img
-              src={DUMMY_IMAGE}
-              alt={productName}
-              className="w-full h-full object-cover"
-              onError={(e) => { e.currentTarget.src = DUMMY_IMAGE; }}
-            />
-          </div>
-
+          {/* Order ID */}
           {displayOrderId && (
-            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-1">
+            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">
               {displayOrderId}
             </p>
           )}
 
-          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto">
-            {productName}
+          {/* Product name */}
+          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto mb-1">
+            {productInfo.style_name}
           </p>
 
-          <p className="text-sm text-gray-500 mt-1 leading-relaxed max-w-xs mx-auto">
-            {DUMMY_DESC}
-          </p>
+          {/* Myntra iframe — navbar & breadcrumbs clipped via translateY */}
+          {myntraUrl && !iframeBlocked && (
+            <div
+              className="relative mx-auto w-full max-w-sm rounded-2xl overflow-hidden shadow-lg border border-gray-200 mb-2"
+              style={{ height: '440px' }}
+            >
+              <iframe
+                src={myntraUrl}
+                title={productInfo.style_name}
+                className="w-full border-0"
+                style={{
+                  height: '640px',
+                  transform: 'translateY(-138px)', // hides navbar (~60px) + breadcrumb (~48px)
+                  pointerEvents: 'none', // prevent accidental clicks / scrolling
+                }}
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin"
+                onError={() => setIframeBlocked(true)}
+              />
+            </div>
+          )}
+
+          {/* Fallback if iframe is blocked */}
+          {myntraUrl && iframeBlocked && (
+            <div className="mx-auto w-full max-w-sm rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center mb-2">
+              <p className="text-sm text-gray-500 mb-3">Preview blocked by Myntra</p>
+              <a
+                href={myntraUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-gray-700 transition-colors"
+              >
+                View on Myntra ↗
+              </a>
+            </div>
+          )}
         </>
       )}
 
