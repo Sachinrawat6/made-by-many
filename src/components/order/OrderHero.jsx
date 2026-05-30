@@ -1,78 +1,50 @@
-import { useState } from 'react';
-
 /**
  * OrderHero
+ * productInfo: { style_id, style_name, imageUrl? } | null
+ * orderId: string | null
  *
- * productInfo: { style_id, style_code, style_name, color, mrp } | null
- * orderMeta:   { order_id, style_number } | null
- * orderId:     string | null
- *
- * Shows product section only when productInfo is available.
- * Embeds Myntra product page in an iframe using style_id.
+ * Image loads in background after team is already visible.
+ * Shows skeleton → image (or nothing if fetch fails).
  */
-export function OrderHero({ productInfo, orderMeta, orderId }) {
-  const [iframeBlocked, setIframeBlocked] = useState(false);
-
-  // Only show product block when API returned data
+export function OrderHero({ productInfo, imageLoading, orderId }) {
   const hasProduct = !!productInfo;
-  const myntraUrl = productInfo?.style_id ? `https://www.myntra.com/${productInfo.style_id}` : null;
-
-  const displayOrderId = orderId ? `#${orderId}` : null;
+  const displayId  = orderId ? `#${orderId}` : null;
+  const imageUrl   = productInfo?.imageUrl ?? null;
 
   return (
     <div className="text-center px-4 pt-8 pb-6 animate-fade-in">
       {/* Heading */}
-      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">Made by Many</h1>
+      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">
+        Made by Many
+      </h1>
 
-      {/* Product block — only when productInfo exists */}
       {hasProduct && (
         <>
           {/* Order ID */}
-          {displayOrderId && (
+          {displayId && (
             <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">
-              {displayOrderId}
+              {displayId}
             </p>
           )}
 
           {/* Product name */}
-          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto mb-1">
+          <p className="text-base font-black text-gray-900 leading-snug max-w-xs mx-auto mb-4">
             {productInfo.style_name}
           </p>
 
-          {/* Myntra iframe — navbar & breadcrumbs clipped via translateY */}
-          {myntraUrl && !iframeBlocked && (
-            <div
-              className="relative mx-auto w-full max-w-sm rounded-2xl overflow-hidden shadow-lg border border-gray-200 mb-2"
-              style={{ height: '440px' }}
-            >
-              <iframe
-                src={myntraUrl}
-                title={productInfo.style_name}
-                className="w-full border-0"
-                style={{
-                  height: '640px',
-                  transform: 'translateY(-138px)', // hides navbar (~60px) + breadcrumb (~48px)
-                  pointerEvents: 'none', // prevent accidental clicks / scrolling
-                }}
-                loading="lazy"
-                sandbox="allow-scripts allow-same-origin"
-                onError={() => setIframeBlocked(true)}
-              />
-            </div>
+          {/* Product image */}
+          {imageLoading && (
+            <div className="mx-auto w-48 h-64 rounded-2xl bg-gray-100 animate-pulse mb-4" />
           )}
 
-          {/* Fallback if iframe is blocked */}
-          {myntraUrl && iframeBlocked && (
-            <div className="mx-auto w-full max-w-sm rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center mb-2">
-              <p className="text-sm text-gray-500 mb-3">Preview blocked by Myntra</p>
-              <a
-                href={myntraUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-gray-700 transition-colors"
-              >
-                View on Myntra ↗
-              </a>
+          {imageUrl && (
+            <div className="relative mx-auto w-48 rounded-2xl overflow-hidden shadow-md border border-gray-100 mb-4 animate-fade-in">
+              <img
+                src={imageUrl}
+                alt={productInfo.style_name}
+                className="w-full h-auto object-cover"
+                loading="lazy"
+              />
             </div>
           )}
         </>

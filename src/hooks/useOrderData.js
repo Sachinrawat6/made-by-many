@@ -1,49 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchOrderById } from "@/api/nocodb";
-import { fetchProductByStyleCode } from "@/api/product";
+import { fetchProductByStyleCode, fetchMyntraImage } from "@/api/product";
 import { STATIC_MEMBERS, TEAM_ROLES } from "@/constants/team";
 
-/**
- * useOrderData
- *
- * Fetches all scan records for an order and resolves each team member's name
- * by matching location names from the API to role definitions.
- *
- * API record shape per scan:
- *   { employees: { user_name }, locations: { name }, orders_2: { order_id, style_number } }
- *
- * @param {string|null} orderId
- * @returns {{ status, team, orderMeta, error, refetch }}
- */
 export function useOrderData(orderId) {
-  const [status,      setStatus]      = useState(orderId ? "loading" : "idle");
-  const [team,        setTeam]        = useState([]);
-  const [orderMeta,   setOrderMeta]   = useState(null);
-  const [productInfo, setProductInfo] = useState(null);
-  const [error,       setError]       = useState(null);
+  const [status,        setStatus]        = useState(orderId ? "loading" : "idle");
+  const [team,          setTeam]          = useState([]);
+  const [productInfo,   setProductInfo]   = useState(null);
+  const [imageLoading,  setImageLoading]  = useState(false);
+  const [error,         setError]         = useState(null);
 
   const resolveTeam = useCallback((locationMap) => {
-    // Static members always first
     const staticPart = STATIC_MEMBERS.map((m) => ({ ...m }));
 
-    // Dynamic members — match locationKeys against cleaned location names
-    // Uses includes() so "cutting master" matches "cutting master" exactly
     const dynamicPart = TEAM_ROLES.map((roleConfig) => {
       let resolvedName = roleConfig.defaultName;
 
       for (const locKey of roleConfig.locationKeys) {
         const key = locKey.toLowerCase();
-        // Exact match first, then partial match
         const found =
           locationMap[key] ||
           Object.entries(locationMap).find(([k]) => k.includes(key) || key.includes(k))?.[1];
-        if (found) {
-          resolvedName = found;
-          break;
-        }
+        if (found) { resolvedName = found; break; }
       }
 
-      // description is a function — call it with the resolved name
       const description =
         typeof roleConfig.description === "function"
           ? roleConfig.description(resolvedName)
@@ -56,32 +36,43 @@ export function useOrderData(orderId) {
   }, []);
 
   const fetchData = useCallback(async () => {
-    if (!orderId) {
-      setStatus("idle");
-      return;
-    }
+    if (!orderId) { setStatus("idle"); return; }
 
     setStatus("loading");
     setError(null);
 
     try {
-      const { locationMap, orderMeta: meta, rawRecords } = await fetchOrderById(orderId);
+      // Step 1: NocoDB + product API in parallel
+      const [{ locationMap, orderMeta: meta, rawRecords }, _] = await Promise.all([
+        fetchOrderById(orderId),
+        Promise.resolve(), // placeholder for future parallel calls
+      ]);
 
-      // No records found — show default team, hide product info
+      // No scans found → default team, no product
       if (rawRecords.length === 0) {
-        setOrderMeta(null);
-        setProductInfo(null);
         setTeam(resolveTeam({}));
+        setProductInfo(null);
         setStatus("success");
         return;
       }
 
-      // Fetch product info in parallel using style_number from orders_2
-      const product = await fetchProductByStyleCode(meta?.style_number);
-      setProductInfo(product);
-      setOrderMeta(meta);
+      // Step 2: resolve team immediately (fast — no extra API call)
       setTeam(resolveTeam(locationMap));
-      setStatus("success");
+      setStatus("success"); // ← page renders NOW, product loads after
+
+      // Step 3: fetch product info in background (non-blocking)
+      const product = await fetchProductByStyleCode(meta?.style_number);
+      if (!product) { setProductInfo(null); return; }
+
+      // Show product name immediately, image comes next
+      setProductInfo({ ...product, imageUrl: null });
+      setImageLoading(true);
+
+      // Fetch Myntra image — page already visible, image just pops in
+      const imageUrl = await fetchMyntraImage(product.style_id);
+      setImageLoading(false);
+      setProductInfo({ ...product, imageUrl });
+
     } catch (err) {
       const message =
         err?.response?.data?.message ||
@@ -92,9 +83,7 @@ export function useOrderData(orderId) {
     }
   }, [orderId, resolveTeam]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  return { status, team, orderMeta, productInfo, error, refetch: fetchData };
+  return { status, team, productInfo, imageLoading, error, refetch: fetchData };
 }

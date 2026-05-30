@@ -12,5 +12,12 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      // Local dev: proxy /.netlify/functions to netlify dev server (port 8888)
+      "/.netlify/functions": {
+        target: "http://localhost:8888",
+        changeOrigin: true,
+      },
+    },
   },
 });
