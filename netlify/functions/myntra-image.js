@@ -1,20 +1,10 @@
-/**
- * Netlify Serverless Function: /api/myntra-image?style_id=33800318
- *
- * Proxies Myntra's gateway API server-side (no CORS/auth restriction).
- * Returns: { imageUrl: "https://assets.myntassets.com/..." } or { imageUrl: null }
- */
-
 const https = require("https");
 
 exports.handler = async (event) => {
   const styleId = event.queryStringParameters?.style_id;
 
   if (!styleId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ imageUrl: null, error: "style_id required" }),
-    };
+    return respond(400, { imageUrl: null, error: "style_id required" });
   }
 
   try {
@@ -22,13 +12,16 @@ exports.handler = async (event) => {
       `https://www.myntra.com/gateway/v2/product/${styleId}`
     );
 
+    // Extract first valid imageURL from default album
     const albums = data?.style?.media?.albums ?? [];
     let imageUrl = null;
 
     for (const album of albums) {
+      if (album.name !== "default") continue;
       for (const img of album?.images ?? []) {
-        const url = img?.imageURL || img?.secureSrc || img?.src;
-        if (url) {
+        // imageURL = plain CDN path (no template vars)
+        const url = img?.imageURL || img?.secureSrc;
+        if (url && url.includes("myntassets")) {
           imageUrl = url.replace("http://", "https://");
           break;
         }
@@ -36,56 +29,66 @@ exports.handler = async (event) => {
       if (imageUrl) break;
     }
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({ imageUrl }),
-    };
+    return respond(200, { imageUrl });
   } catch (err) {
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({ imageUrl: null }),
-    };
+    console.error("myntra-image error:", err.message);
+    return respond(200, { imageUrl: null, debug: err.message });
   }
 };
 
-/** Simple HTTPS GET returning parsed JSON */
+function respond(status, body) {
+  return {
+    statusCode: status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
+    body: JSON.stringify(body),
+  };
+}
+
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(
-      url,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "application/json",
-          Referer: "https://www.myntra.com/",
-        },
+    const options = {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-IN,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.myntra.com/",
+        "Origin": "https://www.myntra.com",
+        "x-location-code": "560001",
+        "x-requested-with": "browser",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
       },
-      (res) => {
-        let body = "";
-        res.on("data", (chunk) => (body += chunk));
-        res.on("end", () => {
-          try {
-            resolve(JSON.parse(body));
-          } catch {
-            reject(new Error("Invalid JSON"));
-          }
-        });
+    };
+
+    const req = https.get(url, options, (res) => {
+      // Handle redirects
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchJson(res.headers.location).then(resolve).catch(reject);
       }
-    );
-    req.on("error", reject);
-    req.setTimeout(10000, () => {
-      req.destroy();
-      reject(new Error("Timeout"));
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode}`));
+      }
+
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => {
+        try {
+          const raw = Buffer.concat(chunks).toString("utf8");
+          resolve(JSON.parse(raw));
+        } catch (e) {
+          reject(new Error("JSON parse failed"));
+        }
+      });
     });
+
+    req.on("error", reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error("Timeout")); });
   });
 }
