@@ -8,23 +8,21 @@
  */
 export function OrderHero({ productInfo, imageLoading, orderId }) {
   const hasProduct = !!productInfo;
-  const displayId  = orderId ? `#${orderId}` : null;
-  const imageUrl   = productInfo?.imageUrl ?? null;
+  const displayId = orderId ? `#${orderId}` : null;
+  const imageUrl = productInfo?.imageUrl ?? null;
+
+  console.log('OrderHero render:', { productInfo, imageLoading, orderId, imageUrl });
 
   return (
     <div className="text-center px-4 pt-8 pb-6 animate-fade-in">
       {/* Heading */}
-      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">
-        Made by Many
-      </h1>
+      <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-5">Made by Many</h1>
 
       {hasProduct && (
         <>
           {/* Order ID */}
           {displayId && (
-            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">
-              {displayId}
-            </p>
+            <p className="text-sm font-semibold text-gray-400 tracking-wider mb-2">{displayId}</p>
           )}
 
           {/* Product name */}
