@@ -12,5 +12,12 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      '/cld-api': {
+        target: 'https://api.cloudinary.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/cld-api/, ''),
+      },
+    },
   },
 });

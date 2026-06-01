@@ -8,7 +8,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
  * Renders the full vertical timeline of team members.
  * Handles loading skeletons and error states internally.
  */
-export function TeamTimeline({ status, team, error, onRetry }) {
+export function TeamTimeline({ status, team, error, onRetry, avatarsReady }) {
   if (status === "loading") {
     return (
       <div className="space-y-4 pt-2">
@@ -52,6 +52,7 @@ export function TeamTimeline({ status, team, error, onRetry }) {
           member={member}
           index={index}
           isLast={index === team.length - 1}
+          avatarsReady={avatarsReady}
         />
       ))}
     </div>

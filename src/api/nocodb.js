@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-const API_BASE  = 'https://nocodb.qurvii.com/api/v2';
-const TABLE_ID  = 'misuaa9cvim4h13';
-const VIEW_ID   = 'vwx3yogyd9jcoqbk';
+const API_BASE = 'https://nocodb.qurvii.com/api/v2';
+const TABLE_ID = 'misuaa9cvim4h13';
+const VIEW_ID = 'vwx3yogyd9jcoqbk';
 const API_TOKEN = 'QXOzKHJ982NgA2AIc8jDqK0lC5CdWEcCwacCIsaJ';
 
 const client = axios.create({
@@ -11,27 +11,6 @@ const client = axios.create({
   timeout: 10_000,
 });
 
-/**
- * Fetch all scan records for a given order_id.
- *
- * Each record shape:
- *   {
- *     check_status: null,
- *     employees:  { id, user_name },
- *     locations:  { id, name },
- *     order_id:   342421,
- *     orders_2:   { order_id, style_number },
- *     scanned_timestamp: "2026-05-30 08:37:17+00:00",
- *     system_id:  317343
- *   }
- *
- * Returns:
- *   {
- *     locationMap: { "tailor scan 2": "Haidar Ali", ... },  // location name (lower) → employee name
- *     orderMeta:   { order_id, style_number },              // from first record
- *     rawRecords:  [...]
- *   }
- */
 export async function fetchOrderById(orderId) {
   const { data } = await client.get(`/tables/${TABLE_ID}/records`, {
     params: {
