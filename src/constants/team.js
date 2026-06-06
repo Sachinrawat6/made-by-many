@@ -148,7 +148,7 @@ export const TEAM_ROLES = [
     defaultName: 'Shahjaha',
     icon: '✨',
     description: (name) =>
-      `${name} adds the final touches to every outfit by cutting extra threads, attaching buttons, and preparing each Qurvii piece before it reaches you.`,
+      `${name} and her team adds the final touches to every outfit by cutting extra threads, attaching buttons, and preparing each Qurvii piece before it reaches you.`,
     gradient: 'from-emerald-400 to-teal-400',
     bgLight: 'bg-emerald-50',
     textColor: 'text-emerald-700',

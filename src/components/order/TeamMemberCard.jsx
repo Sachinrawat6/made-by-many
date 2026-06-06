@@ -2,7 +2,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import clsx from 'clsx';
 
 export function TeamMemberCard({ member, index, isLast, avatarsReady }) {
-  const { role, name, icon, image, description, gradient, bgLight, textColor, borderColor } = member;
+  const { role, name, icon, image, description, gradient, bgLight, textColor, borderColor } =
+    member;
   const isEven = index % 2 === 0; // even → avatar left, odd → avatar right
 
   return (
@@ -19,22 +20,21 @@ export function TeamMemberCard({ member, index, isLast, avatarsReady }) {
         <div className={clsx('flex items-center gap-3 mb-3', !isEven && 'flex-row-reverse')}>
           {/* Avatar with icon badge */}
           <div className="relative flex-shrink-0">
-            <Avatar name={name} image={image} avatarsReady={avatarsReady} gradient={gradient} size="lg" />
-            <span
-              className={clsx(
-                'absolute -bottom-1 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center text-sm border border-gray-100',
-                isEven ? '-right-1' : '-left-1'
-              )}
-              aria-hidden="true"
-            >
-              {icon}
-            </span>
+            <Avatar
+              name={name}
+              image={image}
+              avatarsReady={avatarsReady}
+              gradient={gradient}
+              size="lg"
+            />
           </div>
 
           {/* Name + Role */}
           <div className={clsx('flex-1 min-w-0', !isEven && 'text-right')}>
             <p className="text-xl font-black text-gray-900 leading-tight truncate">{name}</p>
-            <p className={clsx('text-[11px] font-bold uppercase tracking-widest mt-0.5', textColor)}>
+            <p
+              className={clsx('text-[11px] font-bold uppercase tracking-widest mt-0.5', textColor)}
+            >
               {role}
             </p>
           </div>

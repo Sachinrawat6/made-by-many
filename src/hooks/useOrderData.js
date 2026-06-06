@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchOrderById } from "@/api/nocodb";
 import { fetchProductByStyleCode } from "@/api/product";
 import { STATIC_MEMBERS, TEAM_ROLES } from "@/constants/team";
+import { getPersonalDescription } from "@/constants/descriptions";
 
 export function useOrderData(orderId) {
   const [status,      setStatus]      = useState(orderId ? "loading" : "idle");
@@ -10,7 +11,10 @@ export function useOrderData(orderId) {
   const [error,       setError]       = useState(null);
 
   const resolveTeam = useCallback((locationMap) => {
-    const staticPart = STATIC_MEMBERS.map((m) => ({ ...m }));
+    const staticPart = STATIC_MEMBERS.map((m) => ({
+      ...m,
+      description: getPersonalDescription(m.name) ?? m.description,
+    }));
 
     const dynamicPart = TEAM_ROLES.map((roleConfig) => {
       let resolvedName = roleConfig.defaultName;
@@ -23,10 +27,12 @@ export function useOrderData(orderId) {
         if (found) { resolvedName = found; break; }
       }
 
+      // Use personal description if available, else fall back to role default
       const description =
-        typeof roleConfig.description === "function"
+        getPersonalDescription(resolvedName) ??
+        (typeof roleConfig.description === "function"
           ? roleConfig.description(resolvedName)
-          : roleConfig.description;
+          : roleConfig.description);
 
       return { ...roleConfig, name: resolvedName, description };
     });
